@@ -219,9 +219,9 @@ def send_welcome(message):
 
     # Admin uchun statistika
     if is_admin(message.from_user):
-        welcome_text += f"\n\n👥 Bot foydalanuvchilari: **{len(connected_users)}**"
+        welcome_text += f"\n\n👥 Bot foydalanuvchilari: <b>{len(connected_users)}</b>"
         if not ADMIN_ID:
-            welcome_text += f"\n\nℹ️ Sizning ID: `{message.from_user.id}`\n(Uni .env fayliga ADMIN_ID sifatida qo'shishingiz mumkin)"
+            welcome_text += f"\n\nℹ️ Sizning ID: <code>{message.from_user.id}</code>\n(Uni .env fayliga ADMIN_ID sifatida qo'shishingiz mumkin)"
 
 
     # Yangi foydalanuvchini saqlash
@@ -237,7 +237,7 @@ def send_welcome(message):
     keyboard = types.InlineKeyboardMarkup()
     # Web App button removed
 
-    bot.reply_to(message, welcome_text, parse_mode="Markdown", reply_markup=keyboard)
+    bot.reply_to(message, welcome_text, parse_mode="HTML", reply_markup=keyboard)
 
 
 @bot.message_handler(commands=["help"])
@@ -267,7 +267,7 @@ def send_help(message):
         "• @Transalate_uz_bot matn - inline rejimda ishlatish\n\n"
         "❓ Savollar bo'lsa, /start buyrug'ini yuboring."
     )
-    bot.reply_to(message, help_text, parse_mode="Markdown")
+    bot.reply_to(message, help_text, parse_mode="HTML")
 
 
 @bot.message_handler(commands=["inline"])
@@ -276,29 +276,29 @@ def inline_help_command(message):
     Inline mode'ni qanday ishlatish haqida ma'lumot
     """
     inline_help_text = (
-        "📲 **Inline Mode - Har qanday chatda foydalaning!**\n\n"
-        "🔧 **Sozlash:**\n"
+        "📲 <b>Inline Mode - Har qanday chatda foydalaning!</b>\n\n"
+        "🔧 <b>Sozlash:</b>\n"
         "Inline mode allaqachon yoqilgan va ishlamoqda!\n\n"
-        "📝 **Qanday ishlatish:**\n\n"
-        "**1. Har qanday chatda yozing:**\n"
-        "`@Transalate_uz_bot matn`\n\n"
-        "**2. Misollar:**\n"
-        "• `@Transalate_uz_bot hello world`\n"
-        "• `@Transalate_uz_bot salom dunyo`\n"
-        "• `@Transalate_uz_bot привет мир`\n"
-        "• `@Transalate_uz_bot bonjour monde`\n\n"
-        "**3. Nima bo'ladi:**\n"
+        "📝 <b>Qanday ishlatish:</b>\n\n"
+        "<b>1. Har qanday chatda yozing:</b>\n"
+        "<code>@Transalate_uz_bot matn</code>\n\n"
+        "<b>2. Misollar:</b>\n"
+        "• <code>@Transalate_uz_bot hello world</code>\n"
+        "• <code>@Transalate_uz_bot salom dunyo</code>\n"
+        "• <code>@Transalate_uz_bot привет мир</code>\n"
+        "• <code>@Transalate_uz_bot bonjour monde</code>\n\n"
+        "<b>3. Nima bo'ladi:</b>\n"
         "✅ Bot avtomatik tilni aniqlaydi\n"
         "✅ 4 xil tilga tarjima variantlarini ko'rsatadi\n"
         "✅ Birini tanlab, chatga yuborasiz\n"
         "✅ Hammaga ko'rinadi\n\n"
-        "🎯 **Qayerda ishlatish mumkin:**\n"
+        "🎯 <b>Qayerda ishlatish mumkin:</b>\n"
         "• Shaxsiy chatlarda\n"
         "• Guruhlarda\n"
         "• Kanallarda\n"
         "• Har qanday Telegram chatida!\n\n"
-        "🚀 **Hoziroq sinab ko'ring:**\n"
-        "Istalgan chatga o'ting va `@Transalate_uz_bot hello` yozing!"
+        "🚀 <b>Hoziroq sinab ko'ring:</b>\n"
+        "Istalgan chatga o'ting va <code>@Transalate_uz_bot hello</code> yozing!"
     )
 
     keyboard = types.InlineKeyboardMarkup()
@@ -306,7 +306,7 @@ def inline_help_command(message):
 
 
     bot.reply_to(
-        message, inline_help_text, parse_mode="Markdown", reply_markup=keyboard
+        message, inline_help_text, parse_mode="HTML", reply_markup=keyboard
     )
 
 
@@ -315,19 +315,19 @@ def send_languages(message):
     """
     /languages buyrug'i - qo'llab-quvvatlanadigan tillar ro'yxati
     """
-    lang_text = "🌍 **Qo'llab-quvvatlanadigan tillar:**\n\n"
+    lang_text = "🌍 <b>Qo'llab-quvvatlanadigan tillar:</b>\n\n"
 
     for lang_name, lang_code in POPULAR_LANGUAGES.items():
-        lang_text += f"{lang_name} (`{lang_code}`)\n"
+        lang_text += f"{lang_name} (<code>{lang_code}</code>)\n"
 
     lang_text += (
-        "\n💡 **Eslatma:**\n"
+        "\n💡 <b>Eslatma:</b>\n"
         "Bot Google Translate orqali ishlaydi, shuning uchun barcha qo'llab-quvvatlanadigan tillarni qo'llab-quvvatlaydi.\n\n"
-        "📝 **Foydalanish:**\n"
+        "📝 <b>Foydalanish:</b>\n"
         "Matn yuboring va tilni tanlash tugmalaridan foydalaning."
     )
 
-    bot.reply_to(message, lang_text, parse_mode="Markdown")
+    bot.reply_to(message, lang_text, parse_mode="HTML")
 
 
 @bot.message_handler(commands=["stats", "statistics"])
@@ -341,17 +341,17 @@ def send_stats(message):
     fav_count = len(favorite_languages.get(user_id, []))
 
     stats_text = (
-        f"📊 **Sizning statistikangiz:**\n\n"
-        f"🔄 Jami tarjimalar: **{count}**\n"
-        f"📜 Tarixda saqlangan: **{history_count}**\n"
-        f"⭐ Favorit tillar: **{fav_count}**\n\n"
+        f"📊 <b>Sizning statistikangiz:</b>\n\n"
+        f"🔄 Jami tarjimalar: <b>{count}</b>\n"
+        f"📜 Tarixda saqlangan: <b>{history_count}</b>\n"
+        f"⭐ Favorit tillar: <b>{fav_count}</b>\n\n"
     )
 
     # Admin uchun qo'shimcha statistika
     if is_admin(message.from_user):
         stats_text += (
-            f"👥 **Bot bo'yicha umumiy:**\n"
-            f"👤 Jami foydalanuvchilar: **{len(connected_users)}**\n\n"
+            f"👥 <b>Bot bo'yicha umumiy:</b>\n"
+            f"👤 Jami foydalanuvchilar: <b>{len(connected_users)}</b>\n\n"
         )
 
 
@@ -364,7 +364,7 @@ def send_stats(message):
     else:
         stats_text += "🏆 A'lo! Siz botning eng faol foydalanuvchilaridan birisisiz!"
 
-    bot.reply_to(message, stats_text, parse_mode="Markdown")
+    bot.reply_to(message, stats_text, parse_mode="HTML")
 
 
 @bot.message_handler(commands=["users", "allstats"])
@@ -378,12 +378,12 @@ def all_stats_command(message):
     total_users = len(connected_users)
     
     text = (
-        f"📊 **Bot Statistikasi**\n\n"
-        f"👥 Jami foydalanuvchilar: **{total_users}**\n\n"
-        f"💡 Bu raqam `/start` bosgan barcha unikal foydalanuvchilarni o'z ichiga oladi."
+        f"📊 <b>Bot Statistikasi</b>\n\n"
+        f"👥 Jami foydalanuvchilar: <b>{total_users}</b>\n\n"
+        f"💡 Bu raqam <code>/start</code> bosgan barcha unikal foydalanuvchilarni o'z ichiga oladi."
     )
     
-    bot.reply_to(message, text, parse_mode="Markdown")
+    bot.reply_to(message, text, parse_mode="HTML")
 
 
 
