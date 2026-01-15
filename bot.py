@@ -25,12 +25,7 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8543153606:AAH3_nB0HShneekrtpU3sjyNJMMA_1XqB8Y")
 
 # Admin sozlamalari
-ADMIN_ID = os.getenv("ADMIN_ID") # Masalan: 12345678
-if ADMIN_ID:
-    try:
-        ADMIN_ID = int(ADMIN_ID)
-    except ValueError:
-        ADMIN_ID = None
+ADMIN_ID = int(os.getenv("ADMIN_ID", "7091543940")) # Masalan: 12345678
 
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "MadaminovSuhrob")
 
