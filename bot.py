@@ -25,7 +25,12 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8543153606:AAH3_nB0HShneekrtpU3sjyNJMMA_1XqB8Y")
 
 # Admin sozlamalari
-ADMIN_ID = int(os.getenv("ADMIN_ID", "7091543940")) # Masalan: 12345678
+ADMIN_ID = os.getenv("ADMIN_ID") # Masalan: 12345678
+if ADMIN_ID:
+    try:
+        ADMIN_ID = int(ADMIN_ID)
+    except ValueError:
+        ADMIN_ID = None
 
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "MadaminovSuhrob")
 
@@ -214,9 +219,9 @@ def send_welcome(message):
 
     # Admin uchun statistika
     if is_admin(message.from_user):
-        welcome_text += f"\n\n👥 Bot foydalanuvchilari: <b>{len(connected_users)}</b>"
+        welcome_text += f"\n\n👥 Bot foydalanuvchilari: **{len(connected_users)}**"
         if not ADMIN_ID:
-            welcome_text += f"\n\nℹ️ Sizning ID: <code>{message.from_user.id}</code>\n(Uni .env fayliga ADMIN_ID sifatida qo'shishingiz mumkin)"
+            welcome_text += f"\n\nℹ️ Sizning ID: `{message.from_user.id}`\n(Uni .env fayliga ADMIN_ID sifatida qo'shishingiz mumkin)"
 
 
     # Yangi foydalanuvchini saqlash
@@ -232,7 +237,7 @@ def send_welcome(message):
     keyboard = types.InlineKeyboardMarkup()
     # Web App button removed
 
-    bot.reply_to(message, welcome_text, parse_mode="HTML", reply_markup=keyboard)
+    bot.reply_to(message, welcome_text, parse_mode="Markdown", reply_markup=keyboard)
 
 
 @bot.message_handler(commands=["help"])
@@ -262,7 +267,7 @@ def send_help(message):
         "• @Transalate_uz_bot matn - inline rejimda ishlatish\n\n"
         "❓ Savollar bo'lsa, /start buyrug'ini yuboring."
     )
-    bot.reply_to(message, help_text, parse_mode="HTML")
+    bot.reply_to(message, help_text, parse_mode="Markdown")
 
 
 @bot.message_handler(commands=["inline"])
@@ -271,29 +276,29 @@ def inline_help_command(message):
     Inline mode'ni qanday ishlatish haqida ma'lumot
     """
     inline_help_text = (
-        "📲 <b>Inline Mode - Har qanday chatda foydalaning!</b>\n\n"
-        "🔧 <b>Sozlash:</b>\n"
+        "📲 **Inline Mode - Har qanday chatda foydalaning!**\n\n"
+        "🔧 **Sozlash:**\n"
         "Inline mode allaqachon yoqilgan va ishlamoqda!\n\n"
-        "📝 <b>Qanday ishlatish:</b>\n\n"
-        "<b>1. Har qanday chatda yozing:</b>\n"
-        "<code>@Transalate_uz_bot matn</code>\n\n"
-        "<b>2. Misollar:</b>\n"
-        "• <code>@Transalate_uz_bot hello world</code>\n"
-        "• <code>@Transalate_uz_bot salom dunyo</code>\n"
-        "• <code>@Transalate_uz_bot привет мир</code>\n"
-        "• <code>@Transalate_uz_bot bonjour monde</code>\n\n"
-        "<b>3. Nima bo'ladi:</b>\n"
+        "📝 **Qanday ishlatish:**\n\n"
+        "**1. Har qanday chatda yozing:**\n"
+        "`@Transalate_uz_bot matn`\n\n"
+        "**2. Misollar:**\n"
+        "• `@Transalate_uz_bot hello world`\n"
+        "• `@Transalate_uz_bot salom dunyo`\n"
+        "• `@Transalate_uz_bot привет мир`\n"
+        "• `@Transalate_uz_bot bonjour monde`\n\n"
+        "**3. Nima bo'ladi:**\n"
         "✅ Bot avtomatik tilni aniqlaydi\n"
         "✅ 4 xil tilga tarjima variantlarini ko'rsatadi\n"
         "✅ Birini tanlab, chatga yuborasiz\n"
         "✅ Hammaga ko'rinadi\n\n"
-        "🎯 <b>Qayerda ishlatish mumkin:</b>\n"
+        "🎯 **Qayerda ishlatish mumkin:**\n"
         "• Shaxsiy chatlarda\n"
         "• Guruhlarda\n"
         "• Kanallarda\n"
         "• Har qanday Telegram chatida!\n\n"
-        "🚀 <b>Hoziroq sinab ko'ring:</b>\n"
-        "Istalgan chatga o'ting va <code>@Transalate_uz_bot hello</code> yozing!"
+        "🚀 **Hoziroq sinab ko'ring:**\n"
+        "Istalgan chatga o'ting va `@Transalate_uz_bot hello` yozing!"
     )
 
     keyboard = types.InlineKeyboardMarkup()
@@ -301,7 +306,7 @@ def inline_help_command(message):
 
 
     bot.reply_to(
-        message, inline_help_text, parse_mode="HTML", reply_markup=keyboard
+        message, inline_help_text, parse_mode="Markdown", reply_markup=keyboard
     )
 
 
@@ -310,19 +315,19 @@ def send_languages(message):
     """
     /languages buyrug'i - qo'llab-quvvatlanadigan tillar ro'yxati
     """
-    lang_text = "🌍 <b>Qo'llab-quvvatlanadigan tillar:</b>\n\n"
+    lang_text = "🌍 **Qo'llab-quvvatlanadigan tillar:**\n\n"
 
     for lang_name, lang_code in POPULAR_LANGUAGES.items():
-        lang_text += f"{lang_name} (<code>{lang_code}</code>)\n"
+        lang_text += f"{lang_name} (`{lang_code}`)\n"
 
     lang_text += (
-        "\n💡 <b>Eslatma:</b>\n"
+        "\n💡 **Eslatma:**\n"
         "Bot Google Translate orqali ishlaydi, shuning uchun barcha qo'llab-quvvatlanadigan tillarni qo'llab-quvvatlaydi.\n\n"
-        "📝 <b>Foydalanish:</b>\n"
+        "📝 **Foydalanish:**\n"
         "Matn yuboring va tilni tanlash tugmalaridan foydalaning."
     )
 
-    bot.reply_to(message, lang_text, parse_mode="HTML")
+    bot.reply_to(message, lang_text, parse_mode="Markdown")
 
 
 @bot.message_handler(commands=["stats", "statistics"])
@@ -336,17 +341,17 @@ def send_stats(message):
     fav_count = len(favorite_languages.get(user_id, []))
 
     stats_text = (
-        f"📊 <b>Sizning statistikangiz:</b>\n\n"
-        f"🔄 Jami tarjimalar: <b>{count}</b>\n"
-        f"📜 Tarixda saqlangan: <b>{history_count}</b>\n"
-        f"⭐ Favorit tillar: <b>{fav_count}</b>\n\n"
+        f"📊 **Sizning statistikangiz:**\n\n"
+        f"🔄 Jami tarjimalar: **{count}**\n"
+        f"📜 Tarixda saqlangan: **{history_count}**\n"
+        f"⭐ Favorit tillar: **{fav_count}**\n\n"
     )
 
     # Admin uchun qo'shimcha statistika
     if is_admin(message.from_user):
         stats_text += (
-            f"👥 <b>Bot bo'yicha umumiy:</b>\n"
-            f"👤 Jami foydalanuvchilar: <b>{len(connected_users)}</b>\n\n"
+            f"👥 **Bot bo'yicha umumiy:**\n"
+            f"👤 Jami foydalanuvchilar: **{len(connected_users)}**\n\n"
         )
 
 
@@ -359,7 +364,7 @@ def send_stats(message):
     else:
         stats_text += "🏆 A'lo! Siz botning eng faol foydalanuvchilaridan birisisiz!"
 
-    bot.reply_to(message, stats_text, parse_mode="HTML")
+    bot.reply_to(message, stats_text, parse_mode="Markdown")
 
 
 @bot.message_handler(commands=["users", "allstats"])
@@ -373,12 +378,12 @@ def all_stats_command(message):
     total_users = len(connected_users)
     
     text = (
-        f"📊 <b>Bot Statistikasi</b>\n\n"
-        f"👥 Jami foydalanuvchilar: <b>{total_users}</b>\n\n"
-        f"💡 Bu raqam <code>/start</code> bosgan barcha unikal foydalanuvchilarni o'z ichiga oladi."
+        f"📊 **Bot Statistikasi**\n\n"
+        f"👥 Jami foydalanuvchilar: **{total_users}**\n\n"
+        f"💡 Bu raqam `/start` bosgan barcha unikal foydalanuvchilarni o'z ichiga oladi."
     )
     
-    bot.reply_to(message, text, parse_mode="HTML")
+    bot.reply_to(message, text, parse_mode="Markdown")
 
 
 
@@ -1793,68 +1798,31 @@ if __name__ == "__main__":
     except Exception as e:
         logging.warning(f"Webhook tozalashda xatolik (ehtimol webhook yo'q): {e}")
 
-    max_retries = 3
-    retry_count = 0
+    # Botni cheksiz qayta ulanish rejimida ishga tushirish
+    print("📱 Telegram Bot ishga tushirilmoqda...")
+    print("🔄 Tarmoq uzilsa ham avtomatik qayta ulanadi.")
 
-    while retry_count < max_retries:
+    while True:
         try:
-            # Botni polling rejimida ishga tushirish
-            if retry_count > 0:
-                print(
-                    f"\n🔄 Botni ishga tushirishga urinish {retry_count + 1}/{max_retries}..."
-                )
-            else:
-                print("📱 Telegram Bot ishga tushirilmoqda...")
-
-            bot.polling(none_stop=True, interval=0, timeout=20, long_polling_timeout=20)
-            break
-        except KeyboardInterrupt:
-            print("\n✅ Bot va Web App to'xtatildi.")
-            logging.info("Bot foydalanuvchi tomonidan to'xtatildi.")
-            break
+            # Timeoutlarni oshiramiz: timeout=90, long_polling_timeout=90
+            # BuReadTimeout xatolarini kamaytiradi
+            bot.polling(none_stop=True, interval=0, timeout=90, long_polling_timeout=90)
         except Exception as e:
             error_msg = str(e)
+            
+            # Agar bot to'xtatilgan bo'lsa (Ctrl+C)
+            if isinstance(e, KeyboardInterrupt):
+                print("\n✅ Bot to'xtatildi.")
+                break
+
             logging.error(f"Bot xatosi: {e}")
-
-            # 409 xatolik - boshqa instance ishlamoqda
-            if (
-                "409" in error_msg
-                or "Conflict" in error_msg
-                or "getUpdates" in error_msg
-            ):
-                print("\n" + "=" * 50)
-                print("⚠️  XATOLIK: Boshqa bot instance ishlamoqda!")
-                print("=" * 50)
-                print("\n📋 Iltimos, quyidagilarni bajaring:")
-                print("1. Barcha bot instancelarni to'xtating (Ctrl+C)")
-                print("2. Bir necha soniya kutib turing (5-10 soniya)")
-                print("3. Botni qayta ishga tushiring")
-                print(
-                    "\n💡 Eslatma: Bir vaqtning o'zida faqat bitta bot instance ishlashi kerak!"
-                )
-
-                if retry_count < max_retries - 1:
-                    wait_time = 5
-                    print(f"\n⏳ {wait_time} soniya kutib, qayta urinilmoqda...")
-                    time.sleep(wait_time)
-                    retry_count += 1
-                else:
-                    print("\n❌ Maksimal urinishlar soniga yetildi.")
-                    print(
-                        "Iltimos, barcha bot instancelarni to'xtating va qayta urinib ko'ring."
-                    )
-                    print("\n💡 Yordam:")
-                    print("   - Barcha terminal oynalarini yoping")
-                    print("   - Task Manager'da python.exe jarayonlarini tekshiring")
-                    print("   - Bot tokenini tekshiring")
-                    break
+            
+            # 409 Conflict - jiddiy xato, kutish kerak
+            if "409" in error_msg or "Conflict" in error_msg:
+                print("⚠️ Boshqa bot instance ishlamoqda! 15 soniya kutilmoqda...")
+                time.sleep(15)
             else:
-                print(f"\n❌ Tarmoq yoki API xatosi: {error_msg}")
-                if retry_count < max_retries - 1:
-                    wait_time = 10
-                    print(f"⏳ {wait_time} soniya kutib, qayta urinilmoqda...")
-                    time.sleep(wait_time)
-                    retry_count += 1
-                else:
-                    print("❌ Maksimal urinishlar soniga yetildi.")
-                    break
+                # Tarmoq xatolarida qisqa tanaffus
+                print(f"\n❌ Tarmoq xatosi: {error_msg}")
+                print("🔄 Qayta ulanishga urinilmoqda (5 soniya)...")
+                time.sleep(5)
