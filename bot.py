@@ -43,6 +43,37 @@ except Exception as e:
     print(f"Bot yaratishda xatolik: {e}")
     sys.exit(1)
 
+# Majburiy kanal sozlamalari
+REQUIRED_CHANNEL_ID = os.getenv("REQUIRED_CHANNEL_ID", "@MyProjectm")
+CHANNEL_LINK = os.getenv("CHANNEL_LINK", "https://t.me/MyProjectm")
+
+def check_subscription(user_id):
+    """Foydalanuvchi kanalga a'zo ekanligini tekshirish"""
+    try:
+        member = bot.get_chat_member(REQUIRED_CHANNEL_ID, user_id)
+        if member.status in ['member', 'administrator', 'creator']:
+            return True
+        return False
+    except Exception as e:
+        logging.error(f"Subscription check error: {e}")
+        return False # Xatolik bo'lsa obuna bo'lishni talab qilamiz
+
+
+def send_subscription_message(message):
+    """Kanalga obuna bo'lish haqida xabar yuborish"""
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(types.InlineKeyboardButton("📢 Kanalga qo'shilish", url=CHANNEL_LINK))
+    keyboard.add(types.InlineKeyboardButton("✅ Tekshirish", callback_data="check_sub"))
+    
+    bot.reply_to(
+        message,
+        "❌ **Botdan foydalanish uchun kanalimizga a'zo bo'lishingiz kerak!**\n\n"
+        f"📢 Kanal: {REQUIRED_CHANNEL_ID}\n\n"
+        "👉 Pastdagi tugmani bosib kanalga qo'shiling va '✅ Tekshirish' tugmasini bosing.",
+        parse_mode="Markdown",
+        reply_markup=keyboard
+    )
+
 
 def is_admin(user):
     """Foydalanuvchi admin ekanligini tekshirish"""
@@ -207,6 +238,13 @@ def send_welcome(message):
     """
     /start buyrug'i uchun javob funksiyasi
     """
+    user_id = message.from_user.id
+    
+    # Kanalga a'zolikni tekshirish
+    if not check_subscription(user_id):
+        send_subscription_message(message)
+        return
+
     welcome_text = (
         "👋 Salom! Men tarjimon botman.\n\n"
         "📝 Tarjima qilish uchun:\n"
@@ -225,7 +263,6 @@ def send_welcome(message):
 
 
     # Yangi foydalanuvchini saqlash
-    user_id = message.from_user.id
     if user_id not in connected_users:
         connected_users.add(user_id)
         save_users()
@@ -900,6 +937,12 @@ def handle_text_messages(message):
     """
     # Agar buyruq bo'lsa, e'tibor bermaslik
     if message.text.startswith("/"):
+        return
+
+    # Kanalga a'zolikni tekshirish
+    user_id = message.from_user.id
+    if not check_subscription(user_id):
+        send_subscription_message(message)
         return
 
     text = message.text.strip()
@@ -1707,6 +1750,34 @@ def handle_settings(call):
     except Exception as e:
         bot.answer_callback_query(call.id, f"❌ Xatolik: {str(e)}")
         logging.error(f"Settings callback error: {e}")
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "check_sub")
+def handle_check_subscription(call):
+    """
+    Kanalga obuna tekshirish callback handler
+    """
+    try:
+        user_id = call.from_user.id
+        if check_subscription(user_id):
+            bot.answer_callback_query(call.id, "✅ Siz kanalga a'zo bo'lgansiz! Endi botdan foydalanishingiz mumkin.")
+            bot.edit_message_text(
+                "✅ **Rahmat! Siz kanalga muvaffaqiyatli qo'shildingiz!**\n\n"
+                "Endi botdan foydalanishingiz mumkin.\n"
+                "📝 Tarjima qilish uchun matn yuboring yoki /start buyrug'ini bosing.",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="Markdown"
+            )
+        else:
+            bot.answer_callback_query(
+                call.id,
+                "❌ Siz hali kanalga a'zo bo'lmadingiz! Iltimos, avval kanalga qo'shiling.",
+                show_alert=True
+            )
+    except Exception as e:
+        bot.answer_callback_query(call.id, f"❌ Xatolik: {str(e)}")
+        logging.error(f"Check subscription callback error: {e}")
 
 
 @bot.message_handler(content_types=["web_app_data"])
