@@ -211,6 +211,45 @@ def create_language_keyboard(prefix="from", user_id=None, show_favorites=False):
     return keyboard
 
 
+def get_main_keyboard():
+    """Pastda doim ko'rinadigan asosiy tugmalar paneli"""
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    keyboard.add(
+        types.KeyboardButton("🌐 Tarjima qilish"),
+        types.KeyboardButton("⚙️ Sozlamalar"),
+    )
+    keyboard.add(
+        types.KeyboardButton("📜 Tarix"),
+        types.KeyboardButton("⭐ Favoritlar"),
+    )
+    keyboard.add(types.KeyboardButton("ℹ️ Yordam"))
+    return keyboard
+
+
+def get_user_default_langs(user_id):
+    """Foydalanuvchining default til juftini qaytarish"""
+    settings = user_settings.get(user_id, {})
+    return settings.get("default_from", "auto"), settings.get("default_to", "uz")
+
+
+def quick_translate_keyboard(from_lang, to_lang):
+    """Tez til almashtirish uchun inline tugmalar"""
+    keyboard = types.InlineKeyboardMarkup(row_width=4)
+    quick_langs = [("🇺🇿", "uz"), ("🇬🇧", "en"), ("🇷🇺", "ru"), ("🇹🇷", "tr")]
+    btns = []
+    for flag, code in quick_langs:
+        label = f"{flag}✅" if code == to_lang else flag
+        btns.append(types.InlineKeyboardButton(label, callback_data=f"qlang_{code}"))
+    keyboard.add(*btns)
+    keyboard.add(
+        types.InlineKeyboardButton("🔧 Boshqa til", callback_data="change_target_lang"),
+        types.InlineKeyboardButton(
+            "🔄 Teskari", callback_data=f"retranslate_{from_lang}_{to_lang}"
+        ),
+    )
+    return keyboard
+
+
 def save_translation_history(user_id, original, translated, from_lang, to_lang):
     """
     Tarjima tarixini saqlash
@@ -247,20 +286,18 @@ def send_welcome(message):
 
     welcome_text = (
         "👋 Salom! Men tarjimon botman.\n\n"
-        "📝 Tarjima qilish uchun:\n"
-        "1️⃣ Matn yuboring yoki\n"
-        "2️⃣ /translate buyrug'ini ishlating\n\n"
-        "🤖 Bot: @Transalate_uz_bot\n\n"
-        "💡 Siz matn yuborganingizdan keyin, tilni tanlash uchun tugmalar ko'rsatiladi.\n\n"
-        "📚 Barcha buyruqlar: /help"
+        "✅ *Ishlatish juda oson:*\n"
+        "Shunchaki matn yuboring — men darhol tarjima qilaman!\n\n"
+        "🇺🇿 → 🇬🇧 → 🇷🇺 → 🇹🇷 tugmalar bilan tez til almashtirish\n"
+        "⚙️ Sozlamalarda default tilni o'zgartirish mumkin\n\n"
+        "🤖 Bot: @Transalate_uz_bot"
     )
 
     # Admin uchun statistika
     if is_admin(message.from_user):
-        welcome_text += f"\n\n👥 Bot foydalanuvchilari: **{len(connected_users)}**"
+        welcome_text += f"\n\n👥 Bot foydalanuvchilari: *{len(connected_users)}*"
         if not ADMIN_ID:
-            welcome_text += f"\n\nℹ️ Sizning ID: `{message.from_user.id}`\n(Uni .env fayliga ADMIN_ID sifatida qo'shishingiz mumkin)"
-
+            welcome_text += f"\n\nℹ️ Sizning ID: `{message.from_user.id}`"
 
     # Yangi foydalanuvchini saqlash
     if user_id not in connected_users:
@@ -268,13 +305,9 @@ def send_welcome(message):
         save_users()
         logging.info(f"Yangi foydalanuvchi qo'shildi: {user_id}")
 
-
-    # Web App button removed
-    
-    keyboard = types.InlineKeyboardMarkup()
-    # Web App button removed
-
-    bot.reply_to(message, welcome_text, parse_mode="Markdown", reply_markup=keyboard)
+    bot.reply_to(
+        message, welcome_text, parse_mode="Markdown", reply_markup=get_main_keyboard()
+    )
 
 
 @bot.message_handler(commands=["help"])
@@ -933,37 +966,86 @@ def handle_document(message):
 @bot.message_handler(func=lambda message: True)
 def handle_text_messages(message):
     """
-    Oddiy matn xabarlarini qayta ishlash - til tanlash tugmalarini ko'rsatish
+    Oddiy matn xabarlarini qayta ishlash - darhol tarjima qilish
     """
-    # Agar buyruq bo'lsa, e'tibor bermaslik
     if message.text.startswith("/"):
         return
 
-    # Kanalga a'zolikni tekshirish
     user_id = message.from_user.id
+
+    # Kanalga a'zolikni tekshirish
     if not check_subscription(user_id):
         send_subscription_message(message)
         return
 
     text = message.text.strip()
-
-    # Matn bo'sh bo'lmasligini tekshirish
     if not text:
-        bot.reply_to(message, "Iltimos, tarjima qilinadigan matnni kiriting.")
+        bot.reply_to(message, "Iltimos, matn kiriting.")
+        return
+
+    # Asosiy klaviatura tugmalarini ushlash
+    MAIN_BUTTONS = {
+        "🌐 Tarjima qilish": lambda: bot.reply_to(
+            message,
+            "📝 Tarjima uchun matn yuboring — men darhol tarjima qilaman!",
+            reply_markup=get_main_keyboard(),
+        ),
+        "⚙️ Sozlamalar": lambda: settings_command(message),
+        "📜 Tarix": lambda: history_command(message),
+        "⭐ Favoritlar": lambda: favorites_command(message),
+        "ℹ️ Yordam": lambda: send_help(message),
+    }
+
+    if text in MAIN_BUTTONS:
+        MAIN_BUTTONS[text]()
         return
 
     # Matnni saqlash
-    user_id = message.from_user.id
     user_texts[user_id] = text
 
-    # Manba tilni tanlash uchun tugmalar
-    keyboard = create_language_keyboard("from", user_id=user_id)
-    bot.reply_to(
-        message,
-        f"📝 Matn: {text}\n\n"
-        "🔤 Qaysi tildan tarjima qilmoqchisiz? Manba tilni tanlang:",
-        reply_markup=keyboard,
-    )
+    # Foydalanuvchining default til juftini olish
+    from_lang, to_lang = get_user_default_langs(user_id)
+
+    # "Tarjima qilinmoqda..." xabari
+    wait_msg = bot.reply_to(message, "⏳ Tarjima qilinmoqda...")
+
+    try:
+        result = perform_translation(text, from_lang, to_lang)
+        response_text = result["text"] if isinstance(result, dict) else result
+
+        # Statistika va tarix
+        user_stats[user_id] = user_stats.get(user_id, 0) + 1
+        settings = user_settings.get(user_id, {})
+        if settings.get("auto_save_history", True):
+            save_translation_history(
+                user_id,
+                result["original"],
+                result["translated"],
+                result["from_lang"],
+                result["to_lang"],
+            )
+
+        keyboard = quick_translate_keyboard(from_lang, to_lang)
+        try:
+            bot.edit_message_text(
+                response_text,
+                wait_msg.chat.id,
+                wait_msg.message_id,
+                reply_markup=keyboard,
+            )
+        except Exception:
+            bot.reply_to(message, response_text, reply_markup=keyboard)
+
+    except Exception as e:
+        try:
+            bot.edit_message_text(
+                f"❌ Tarjima xatolik: {str(e)}\n\nQayta matn yuboring.",
+                wait_msg.chat.id,
+                wait_msg.message_id,
+            )
+        except Exception:
+            pass
+        logging.error(f"Auto-translate error: {e}")
 
 
 @bot.inline_handler(func=lambda query: True)
@@ -1274,23 +1356,18 @@ def handle_target_language(call):
                 except Exception as e:
                     logging.error(f"File translation error: {e}")
 
-            # Nusxalash va qayta tarjima qilish tugmalari
-            keyboard = types.InlineKeyboardMarkup(row_width=2)
-            translated_text = result["translated"] if isinstance(result, dict) else ""
-            copy_btn = types.InlineKeyboardButton(
-                "📋 Nusxalash", callback_data=f"copy_{translated_text}"
-            )
-            retranslate_btn = types.InlineKeyboardButton(
-                "🔄 Qayta tarjima", callback_data=f"retranslate_{from_lang}_{to_lang}"
-            )
-            keyboard.add(copy_btn, retranslate_btn)
+            keyboard = quick_translate_keyboard(from_lang, to_lang)
 
-            bot.edit_message_text(
-                response_text,
-                call.message.chat.id,
-                call.message.message_id,
-                reply_markup=keyboard,
-            )
+            try:
+                bot.edit_message_text(
+                    response_text,
+                    call.message.chat.id,
+                    call.message.message_id,
+                    reply_markup=keyboard,
+                )
+            except Exception as edit_err:
+                if "message is not modified" not in str(edit_err):
+                    logging.error(f"to_ edit error: {edit_err}")
 
             # Foydalanuvchi ma'lumotlarini tozalash
             if user_id in user_texts:
@@ -1302,14 +1379,115 @@ def handle_target_language(call):
                 f"Xatolik: {str(e)}\n\n"
                 f"Iltimos, qayta urinib ko'ring."
             )
-            bot.edit_message_text(
-                error_msg, call.message.chat.id, call.message.message_id
-            )
+            try:
+                bot.edit_message_text(
+                    error_msg, call.message.chat.id, call.message.message_id
+                )
+            except Exception as edit_err:
+                if "message is not modified" not in str(edit_err):
+                    logging.error(f"to_ error edit: {edit_err}")
             logging.error(f"Translation error: {e}")
 
     except Exception as e:
         bot.answer_callback_query(call.id, f"❌ Xatolik: {str(e)}")
         logging.error(f"Target language error: {e}")
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("qlang_"))
+def handle_quick_lang(call):
+    """
+    Tez til almashtirish — tugma bosish bilan darhol qayta tarjima
+    """
+    try:
+        new_to_lang = call.data.replace("qlang_", "")
+        user_id = call.from_user.id
+
+        # Xabardagi asl matnni ajratib olish
+        msg_text = call.message.text or ""
+        original_text = ""
+        for line in msg_text.split("\n"):
+            if line.startswith("📝 Asl"):
+                # "📝 Asl (auto): matn" yoki "📝 Asl (uz): matn" formatlaridan
+                if "): " in line:
+                    original_text = line.split("): ", 1)[1].strip()
+                elif ": " in line:
+                    original_text = line.split(": ", 1)[1].strip()
+                break
+
+        if not original_text:
+            # user_texts dan olishga urinish
+            saved = user_texts.get(user_id)
+            if isinstance(saved, str):
+                original_text = saved
+            elif isinstance(saved, dict):
+                original_text = saved.get("text", "")
+
+        if not original_text:
+            bot.answer_callback_query(call.id, "❌ Matn topilmadi, qayta yuboring.")
+            return
+
+        from_lang, _ = get_user_default_langs(user_id)
+        bot.answer_callback_query(call.id, "⏳ Tarjima qilinmoqda...")
+
+        result = perform_translation(original_text, from_lang, new_to_lang)
+        response_text = result["text"] if isinstance(result, dict) else result
+
+        # Default tilni yangilash
+        if user_id not in user_settings:
+            user_settings[user_id] = {"default_from": "auto", "default_to": "uz", "auto_save_history": True}
+        user_settings[user_id]["default_to"] = new_to_lang
+
+        # Statistika
+        user_stats[user_id] = user_stats.get(user_id, 0) + 1
+
+        keyboard = quick_translate_keyboard(from_lang, new_to_lang)
+        try:
+            bot.edit_message_text(
+                response_text,
+                call.message.chat.id,
+                call.message.message_id,
+                reply_markup=keyboard,
+            )
+        except Exception as edit_err:
+            if "message is not modified" not in str(edit_err):
+                logging.error(f"qlang edit error: {edit_err}")
+
+    except Exception as e:
+        bot.answer_callback_query(call.id, f"❌ Xatolik: {str(e)}")
+        logging.error(f"Quick lang error: {e}")
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "change_target_lang")
+def handle_change_target_lang(call):
+    """
+    'Boshqa til' tugmasi — barcha tillar ro'yxatini ko'rsatish
+    """
+    try:
+        user_id = call.from_user.id
+        # Matnni user_texts ga saqlash (xabardagi asl matndan)
+        msg_text = call.message.text or ""
+        for line in msg_text.split("\n"):
+            if line.startswith("📝 Asl"):
+                if "): " in line:
+                    user_texts[user_id] = line.split("): ", 1)[1].strip()
+                elif ": " in line:
+                    user_texts[user_id] = line.split(": ", 1)[1].strip()
+                break
+
+        keyboard = create_language_keyboard("to", user_id=user_id)
+        try:
+            bot.edit_message_text(
+                "🌍 Qaysi tilga tarjima qilmoqchisiz?",
+                call.message.chat.id,
+                call.message.message_id,
+                reply_markup=keyboard,
+            )
+        except Exception as edit_err:
+            if "message is not modified" not in str(edit_err):
+                logging.error(f"change_target_lang edit error: {edit_err}")
+    except Exception as e:
+        bot.answer_callback_query(call.id, f"❌ Xatolik: {str(e)}")
+        logging.error(f"Change target lang error: {e}")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("copy_"))
@@ -1395,23 +1573,34 @@ def handle_retranslate(call):
                 )
                 keyboard.add(copy_btn, retranslate_btn)
 
-                bot.edit_message_text(
-                    response_text,
-                    call.message.chat.id,
-                    call.message.message_id,
-                    reply_markup=keyboard,
-                )
+                try:
+                    bot.edit_message_text(
+                        response_text,
+                        call.message.chat.id,
+                        call.message.message_id,
+                        reply_markup=keyboard,
+                    )
+                except Exception as edit_err:
+                    if "message is not modified" in str(edit_err):
+                        bot.answer_callback_query(call.id, "ℹ️ Tarjima o'zgarmadi")
+                    else:
+                        raise edit_err
             except Exception as e:
                 error_msg = f"❌ Qayta tarjima qilishda xatolik: {str(e)}"
-                bot.edit_message_text(
-                    error_msg, call.message.chat.id, call.message.message_id
-                )
+                try:
+                    bot.edit_message_text(
+                        error_msg, call.message.chat.id, call.message.message_id
+                    )
+                except Exception as edit_err:
+                    if "message is not modified" not in str(edit_err):
+                        logging.error(f"Retranslate edit error: {edit_err}")
                 logging.error(f"Retranslate error: {e}")
         else:
             bot.answer_callback_query(call.id, "❌ Xatolik: noto'g'ri format")
     except Exception as e:
-        bot.answer_callback_query(call.id, f"❌ Xatolik: {str(e)}")
-        logging.error(f"Retranslate error: {e}")
+        if "message is not modified" not in str(e):
+            bot.answer_callback_query(call.id, f"❌ Xatolik: {str(e)}")
+            logging.error(f"Retranslate error: {e}")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("multi_"))
