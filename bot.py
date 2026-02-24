@@ -2050,13 +2050,16 @@ if __name__ == "__main__":
 
     # Web App logika o'chirib tashlandi
 
-    # Avval barcha pending updatelarni tozalash
-    try:
-        bot.delete_webhook()
-        print("✅ Webhook tozalandi.")
-        time.sleep(1)
-    except Exception as e:
-        logging.warning(f"Webhook tozalashda xatolik (ehtimol webhook yo'q): {e}")
+    # Avval webhook va pending updatelarni tozalash (Railway deploy konfliktini oldini olish)
+    for attempt in range(5):
+        try:
+            bot.delete_webhook(drop_pending_updates=True)
+            print("✅ Webhook tozalandi, pending updatelar o'chirildi.")
+            time.sleep(5)  # Eski container to'liq o'chishi uchun kutish
+            break
+        except Exception as e:
+            logging.warning(f"Webhook tozalash urinishi {attempt + 1}/5: {e}")
+            time.sleep(3)
 
     # Botni cheksiz qayta ulanish rejimida ishga tushirish
     print("📱 Telegram Bot ishga tushirilmoqda...")
@@ -2064,25 +2067,23 @@ if __name__ == "__main__":
 
     while True:
         try:
-            # Timeoutlarni oshiramiz: timeout=90, long_polling_timeout=90
-            # BuReadTimeout xatolarini kamaytiradi
             bot.polling(none_stop=True, interval=0, timeout=90, long_polling_timeout=90)
+        except KeyboardInterrupt:
+            print("\n✅ Bot to'xtatildi.")
+            break
         except Exception as e:
             error_msg = str(e)
-            
-            # Agar bot to'xtatilgan bo'lsa (Ctrl+C)
-            if isinstance(e, KeyboardInterrupt):
-                print("\n✅ Bot to'xtatildi.")
-                break
-
             logging.error(f"Bot xatosi: {e}")
-            
-            # 409 Conflict - jiddiy xato, kutish kerak
+
             if "409" in error_msg or "Conflict" in error_msg:
-                print("⚠️ Boshqa bot instance ishlamoqda! 15 soniya kutilmoqda...")
-                time.sleep(15)
+                # Eski Railway container hali o'chmagan — webhook qayta tozalab kutish
+                print("⚠️ Boshqa bot instance bilan konflikt! Webhook qayta tozalanmoqda...")
+                try:
+                    bot.delete_webhook(drop_pending_updates=True)
+                except Exception:
+                    pass
+                time.sleep(5)
             else:
-                # Tarmoq xatolarida qisqa tanaffus
-                print(f"\n❌ Tarmoq xatosi: {error_msg}")
+                print(f"❌ Tarmoq xatosi: {error_msg}")
                 print("🔄 Qayta ulanishga urinilmoqda (5 soniya)...")
                 time.sleep(5)
