@@ -2048,42 +2048,27 @@ if __name__ == "__main__":
     print("Botni to'xtatish uchun Ctrl+C bosing.")
     print("=" * 60)
 
-    # Web App logika o'chirib tashlandi
-
-    # Avval webhook va pending updatelarni tozalash (Railway deploy konfliktini oldini olish)
+    # Webhook tozalash
     for attempt in range(5):
         try:
             bot.delete_webhook(drop_pending_updates=True)
             print("✅ Webhook tozalandi, pending updatelar o'chirildi.")
-            time.sleep(5)  # Eski container to'liq o'chishi uchun kutish
             break
         except Exception as e:
             logging.warning(f"Webhook tozalash urinishi {attempt + 1}/5: {e}")
             time.sleep(3)
 
-    # Botni cheksiz qayta ulanish rejimida ishga tushirish
+    # Railway eski containerni to'xtatishi uchun kutish (409 Conflict oldini olish)
+    print("⏳ Eski instance to'xtatilishini kutmoqda (15 soniya)...")
+    time.sleep(15)
+
     print("📱 Telegram Bot ishga tushirilmoqda...")
-    print("🔄 Tarmoq uzilsa ham avtomatik qayta ulanadi.")
+    print("🔄 infinity_polling — avtomatik xato qayta ishlash bilan.")
 
-    while True:
-        try:
-            bot.polling(none_stop=True, interval=0, timeout=90, long_polling_timeout=90)
-        except KeyboardInterrupt:
-            print("\n✅ Bot to'xtatildi.")
-            break
-        except Exception as e:
-            error_msg = str(e)
-            logging.error(f"Bot xatosi: {e}")
-
-            if "409" in error_msg or "Conflict" in error_msg:
-                # Eski Railway container hali o'chmagan — webhook qayta tozalab kutish
-                print("⚠️ Boshqa bot instance bilan konflikt! Webhook qayta tozalanmoqda...")
-                try:
-                    bot.delete_webhook(drop_pending_updates=True)
-                except Exception:
-                    pass
-                time.sleep(5)
-            else:
-                print(f"❌ Tarmoq xatosi: {error_msg}")
-                print("🔄 Qayta ulanishga urinilmoqda (5 soniya)...")
-                time.sleep(5)
+    # infinity_polling — ichida barcha xatolarni o'zi qayta ishlaydi
+    try:
+        bot.infinity_polling(timeout=90, long_polling_timeout=90, skip_pending=True)
+    except KeyboardInterrupt:
+        print("\n✅ Bot to'xtatildi.")
+    except Exception as e:
+        logging.error(f"Bot kritik xato: {e}")
